@@ -435,3 +435,137 @@ class cam_feature_criteria(nn.Module):
 
 
 )
+
+def main(args):
+    setup_seed(0)
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0,1,2,3"
+    if not os.path.exists(args.savedircln):
+        os.makedirs(args.savedircln)
+
+    if not os.path.exists(args.savediradv):
+        os.makedirs(args.savediradv)
+
+    if not os.path.exists(args.savedirclnnpy):
+        os.makedirs(args.savedirclnnpy)
+
+    if not os.path.exists(args.savediradvnpy):
+        os.makedirs(args.savediradvnpy)
+
+    # GPU
+    use_cuda = torch.cuda.is_available()
+
+    batch_size = args.batch_size
+    trans = transforms.Compose([
+        transforms.ToTensor(),
+        #transforms.Normalize(cf.mean[args.dataset], cf.std[args.dataset]),
+    ])
+
+    # data_set = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=trans)
+    data_set = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=trans)
+    data_loader = torch.utils.data.DataLoader(data_set, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
+
+    # load target network
+    print('\n[Test Phase] : Model setup')
+    assert os.path.isdir('checkpoint'), 'Error: No checkpoint directory found!'
+    _, file_name = getNetwork(args)
+    checkpoint = torch.load('./checkpoint/' + args.dataset + os.sep + file_name + '.t7')
+    net = checkpoint['net']
+
+    if use_cuda:
+        # net.cuda()
+        # net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
+        net = BalancedDataParallel(5, net, dim=0).cuda()
+        cudnn.benchmark = True
+
+    net.eval()
+    net.training = False
+
+    layer_name = get_last_conv_name(net) if args.layer_name is None else args.layer_name
+    cam = CAM_tensor(net, layer_name)
+
+    loss_fn = cam_criteria(cam).cuda() 
+    # loss_fn = ssp_criteria(net, args.ssp_layer).cuda()
+
+
+    adversary = LinfCAMAttack(
+        [net], loss_fn=loss_fn, eps=args.eps,
+        nb_iter=args.iters, eps_iter=args.step_size, rand_init=True, clip_min=0.0, clip_max=1.0,
+        targeted=False)
+
+    # start train
+    cnt = 0
+    counter = 0
+    for i, (img, label) in enumerate(data_loader):
+
+        if use_cuda:
+            img, label = img.cuda(), label.cuda()
+
+        adv = adversary.perturb(img, None)
+
+        # Distance between image and adversary
+        print((adv-img).max()*255)
+
+        # predict
+
+        outputs = net(adv)
+        _, predicted = torch.max(outputs.data, 1)
+        total = label.size(0)
+        correct = predicted.eq(label.data).cpu().sum()
+
+        acc = 100.*correct/total
+        print("| Test Attack Result\tAcc@1: %.2f%%" %(acc))
+
+        outputs = net(img)
+        _, predicted = torch.max(outputs.data, 1)
+        total = label.size(0)
+        correct = predicted.eq(label.data).cpu().sum()
+
+        acc = 100. * correct / total
+        print("| Test Clean Result\tAcc@1: %.2f%%" % (acc))
+
+        for img_index in range(adv.size()[0]):
+            cnt += 1
+            cln_path = os.path.join(args.savedircln, (str(cnt)+'.png'))
+            adv_path = os.path.join(args.savediradv, (str(cnt) + '.png'))
+            cln_path_npy = os.path.join(args.savedirclnnpy, (str(cnt) + '.npy'))
+            adv_path_npy = os.path.join(args.savediradvnpy, (str(cnt) + '.npy'))
+
+            cln_to_save = np.transpose(img[img_index, :, :, :].detach().cpu().numpy(), (1, 2, 0))
+            adv_to_save = np.transpose(adv[img_index, :, :, :].detach().cpu().numpy(), (1, 2, 0))
+
+            np.save(cln_path_npy, cln_to_save)
+            np.save(adv_path_npy, adv_to_save)
+
+            cln_to_save = (cln_to_save * 255).round().astype(np.uint8)
+            imageio.imwrite(cln_path, cln_to_save, format='png')
+            adv_to_save = (adv_to_save * 255).round().astype(np.uint8)
+            imageio.imwrite(adv_path, adv_to_save, format='png')
+
+        counter += 1
+
+        print('Number of Images Processed:', (i + 1) * batch_size)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='CAM Attack')
+    parser.add_argument('--savedircln', default='./results/clean/test_clean_img')
+    parser.add_argument('--savediradv', default='./results/CAM_pgd_adver/cam_mse/test/adver_img')
+    parser.add_argument('--savedirclnnpy', default='./results/clean/test_clean_npy')
+    parser.add_argument('--savediradvnpy', default='./results/CAM_pgd_adver/cam_mse/test/adver_npy')
+    parser.add_argument('--dataset', default='cifar10', type=str, help='dataset = [cifar10/cifar100]')
+    parser.add_argument('--batch_size', type=int, default=500, help='Batch size')
+    parser.add_argument('--eps', type=int, default=8/255, help='pertrbation budget')
+    parser.add_argument('--step_size', type=float, default=0.01, help='Step size')
+    parser.add_argument('--iters', type=int, default=100, help='Number of SSP Iterations')
+    parser.add_argument('--ssp_layer', type=int, default=50, help='VGG layer that is going to be used in SSP')
+    parser.add_argument('--net_type', default='vggnet', type=str, help='model')
+    parser.add_argument('--depth', default=19, type=int, help='depth of model')
+    parser.add_argument('--widen_factor', default=20, type=int, help='width of model')
+    parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
+    parser.add_argument('--layer-name', type=str, default=None, help='last convolutional layer name')
+    # parser.add_argument('--classid', type=int, default=None, help='class id')
+
+    args = parser.parse_args()
+    print(args)
+
+    main(args)
