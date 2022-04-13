@@ -6,7 +6,7 @@ from advertorch_examples.utils import bchw2bhwc
 import torchvision
 
 import torchvision.transforms as transforms
-from advertorch.attacks import LinfPGDAttack, CarliniWagnerL2Attack, DDNL2Attack, SpatialTransformAttack, JacobianSaliencyMapAttack
+from advertorch.attacks import LinfPGDAttack, CarliniWagnerL2Attack, DDNL2Attack, SpatialTransformAttack
 
 import argparse
 from networks import *
@@ -45,7 +45,6 @@ parser.add_argument('--net_type', default='vggnet', type=str, help='model')
 parser.add_argument('--depth', default=19, type=int, help='depth of model')
 parser.add_argument('--widen_factor', default=20, type=int, help='width of model')
 parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
-parser.add_argument('--dataset', default='cifar10', type=str, help='dataset = [cifar10/cifar100]')
 args = parser.parse_args()
 
 cnt = 0
@@ -68,7 +67,7 @@ test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, drop_las
 print('\n[Test Phase] : Model setup')
 assert os.path.isdir('checkpoint'), 'Error: No checkpoint directory found!'
 _, file_name = getNetwork(args)
-checkpoint = torch.load('./checkpoint/'+args.dataset+os.sep+file_name+'.t7')
+checkpoint = torch.load('./checkpoint/'+file_name+'.t7')
 net = checkpoint['net']
 
 if use_cuda:
@@ -96,17 +95,10 @@ for cln_data, true_label in test_loader:
 
 
     adversary = LinfPGDAttack(
-    net, loss_fn=nn.CrossEntropyLoss(reduction="sum"), eps=16/255,
+    net, loss_fn=nn.CrossEntropyLoss(reduction="sum"), eps=8/255,
     nb_iter=40, eps_iter=0.01, rand_init=True, clip_min=0.0, clip_max=1.0,
     targeted=False)
 
-    '''
-    adversary = TIDIM_Attack(net,
-                       decay_factor=1, prob=0.5,
-                       epsilon=8/255, steps=40, step_size=0.01,
-                       image_resize=32,
-                       random_start=False)
-    '''
     '''
     adversary = CarliniWagnerL2Attack(
         net, 10, clip_min=0.0, clip_max=1.0, max_iterations=100, confidence=1, initial_const=1, learning_rate=1e-2,
@@ -116,10 +108,6 @@ for cln_data, true_label in test_loader:
     '''
     adversary = DDNL2Attack(net, nb_iter=100, gamma=0.05, init_norm=1.0, quantize=True, levels=256, clip_min=0.0,
                             clip_max=1.0, targeted=False, loss_fn=None)
-    '''
-    '''
-    adversary = JacobianSaliencyMapAttack(net, 10, clip_min=0.0, clip_max=1.0,
-                                          loss_fn=None, theta=1.0, gamma=1.0)
     '''
 
     adv_untargeted = adversary.perturb(cln_data, true_label)
