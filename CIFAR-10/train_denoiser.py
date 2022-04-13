@@ -17,7 +17,7 @@ from torchvision import transforms
 
 import math
 from os.path import join
-from example_cam import cam_criteria, cam_feature_criteria, CAM_tensor, get_last_conv_name, getNetwork, CAM_feature_tensor
+from example_cam import cam_divide_criteria, get_last_conv_name, getNetwork, CAM_divide_tensor
 from utils.BalancedDataParallel import BalancedDataParallel
 import torch.backends.cudnn as cudnn
 
@@ -171,18 +171,15 @@ parser = argparse.ArgumentParser(description='PyTorch CIFAR-10 Training. See cod
 # STORAGE LOCATION VARIABLES
 parser.add_argument('--traindirs_cln', default='./results/clean/train/clean_npy', type=str,
                     help='path of clean trainset')
-parser.add_argument('--traindirs_adv', default='./results/CAM_pgd_adver/cam_mse/train/adver_npy', type=str,
+parser.add_argument('--traindirs_adv', default='./results/adv/train/adver_npy', type=str,
                     help='path of adversarial trainset')
 parser.add_argument('--traindirs_label', default='./results/label_true_train.pkl', type=str,
                     help='path of training label')
-#parser.add_argument('--testdirs_cln', default='./results/clean/test/clean_npy', type=str,
-#                    help='path of clean testset')
-#parser.add_argument('--testdirs_adv', default='./results/CAM_pgd_adver/cam_mse/test/adver_npy', type=str,
-#                   help='path of adversarial testset')
-# parser.add_argument('--testdirs_cln', default='./data/adv_example/test/VGG/PGD_it40_8/cln_npy', type=str,
-#                    help='path of clean testset')
-# parser.add_argument('--testdirs_adv', default='./data/adv_example/test/VGG/PGD_it40_8/cln_npy', type=str,
-#                     help='path of adversarial testset')
+
+parser.add_argument('--testdirs_cln', default='./data/adv_example/test/PGD_40/cln_npy', type=str,
+                    help='path of clean testset')
+parser.add_argument('--testdirs_adv', default='./data/adv_example/test/PGD_40/cln_npy', type=str,
+                     help='path of adversarial testset')
 parser.add_argument('--testdirs_label', default='./results/label_true_test.pkl', type=str,
                    help='path of test label')
 parser.add_argument('--save_dir', '--sd', default='./checkpoint_denoise/CIFAR/', type=str, help='Path to Model')
@@ -193,10 +190,10 @@ parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
 parser.add_argument('--dataset', default='cifar10', type=str, help='dataset = [cifar10/cifar100]')
 parser.add_argument('--Tcheckpoint', default='./checkpoint')
 parser.add_argument('--layer-name', type=str, default=None, help='last convolutional layer name')
-parser.add_argument('--weight_mse', default=0, type=float, help='weight_mse 0.1')
-parser.add_argument('--weight_adv', default=0.005, type=float, help='weight_adv 0.001')
-parser.add_argument('--weight_act', default=1000, type=float, help='weight_act')
-parser.add_argument('--weight_label', default=0.001, type=float, help='weight_lable')
+# parser.add_argument('--weight_mse', default=0, type=float, help='weight_mse 0.1')
+parser.add_argument('--weight_adv', default=5e-3, type=float, help='weight_adv 0.001')
+parser.add_argument('--weight_act', default=1e3, type=float, help='weight_act')
+parser.add_argument('--weight_weight', default=1e-3, type=float, help='weight_lable')
 
 
 # MODEL HYPERPARAMETERS
@@ -211,8 +208,8 @@ parser.add_argument('--save_freq', '-p', default=2, type=int, help='print freque
 # OTHER PROPERTIES
 parser.add_argument('--gpu', default="0,1", type=str, help='GPU devices to use (0-7) (default: 0,1)')
 parser.add_argument('--mode', default=0, type=int, help='Wether to perform test without trainig (default: 0)')
-parser.add_argument('--path_denoiser', default='./checkpoint_denoise/CIFAR/plus_act_10000_lable_0.01_adv_0.005/best_model.pth.tar', type=str, help='Denoiser path')
-parser.add_argument('--saveroot', default='./results/CAM_pgd_adver/defense/PGD/adv', type=str, help='output images')
+parser.add_argument('--path_denoiser', default='./checkpoint_denoise/CAFD/best_model.pth.tar', type=str, help='Denoiser path')
+parser.add_argument('--saveroot', default='./results/defense/PGD/adv', type=str, help='output images')
 
 args = parser.parse_args()
 
@@ -273,38 +270,13 @@ target_model.training = False
 
 # load loss
 layer_name = get_last_conv_name(target_model) if args.layer_name is None else args.layer_name
-ACT_stable = cam_feature_criteria(CAM_feature_tensor(target_model, layer_name)).cuda()
+ACT_stable = cam_divide_criteria(CAM_divide_tensor(target_model, layer_name)).cuda()
 MSE_stable = torch.nn.MSELoss().cuda()
 BCE_stable = torch.nn.BCEWithLogitsLoss().cuda()
 
 best_pred = 0.0
 worst_pred = float("inf")
 
-
-def grad_step(x_batch, y_batch):
-    """ Performs a step during training. """
-    # Compute output for example
-    logits = target_model(x_batch)
-    # loss = nn.CrossEntropyLoss()(logits, y_batch)
-
-    return logits
-
-    # Update Mean loss for current iteration
-
-
-def no_grad_step(x_batch, y_batch):
-    """ Performs a step during testing."""
-
-    with torch.no_grad():
-        logits = target_model(x_batch)
-        # loss = nn.CrossEntropyLoss()(logits, y_batch)
-
-    # Update Mean loss for current iteration
-    #         losses.update(loss.item(), x_batch.size(0))
-    #         prec1 = accuracy(logits.data, y_batch, k=k)
-    #         top1.update(prec1.item(), x_batch.size(0))
-
-    return logits
 
 
 def train(epoch):
@@ -317,10 +289,7 @@ def train(epoch):
     optimizer_D = optim.Adam(netD.parameters(), lr=adjust_learning_rate(learning_rate, epoch),
                            weight_decay=args.weight_decay)
 
-    losses_label = AverageMeter()
-    losses_mse = AverageMeter()
-    losses_adv = AverageMeter()
-    losses_act = AverageMeter()
+
     losses = AverageMeter()
     batch_time = AverageMeter()
     top1 = AverageMeter()
@@ -339,7 +308,6 @@ def train(epoch):
         y_pred = netD(x)
         noise = denoiser.forward(x_adv).detach()
         x_smooth = x_adv + noise
-        # x_smooth = denoiser.forward(x_adv).detach()
         y_pred_fake = netD(x_smooth)
 
         loss_D = (BCE_stable(y_pred - torch.mean(y_pred_fake), t_real) +
@@ -349,10 +317,9 @@ def train(epoch):
         loss_D.backward()
         optimizer_D.step()
 
-        # 3. Compute denoised image. Need to check this...
+        # Compute denoised image. 
         noise = denoiser.forward(x_adv)
         x_smooth = x_adv + noise
-        # x_smooth = denoiser.forward(x_adv)
 
         # adv_loss
         y_pred = netD(x)
@@ -361,31 +328,24 @@ def train(epoch):
         loss_adv = ((BCE_stable(y_pred - torch.mean(y_pred_fake), t_fake) +
                     BCE_stable(y_pred_fake - torch.mean(y_pred), t_real)) / 2) * args.weight_adv
 
-        # 4. Get logits from smooth and denoised image
-        logits_smooth= grad_step(x_smooth, y)
-        # logits_org = grad_step(x, y)
+        # Get logits from smooth and denoised image
+        logits_smooth= target_model(x_smooth)
+ 
 
-        # 5. Compute loss
+        # Compute loss
 
-        #loss_ori = torch.sum( torch.abs(logits_smooth - logits_org) ) / x.size(0) * args.weight_ori
-
-        loss_mse = MSE_stable(x_smooth, x) * args.weight_mse
-
-        loss_act, loss_label = ACT_stable(x_smooth, x)
-
-        # loss_label = loss_act
+        loss_act, loss_weight = ACT_stable(x_smooth, x)
 
         loss_act = loss_act * args.weight_act
 
-        loss_label = loss_label * args.weight_label
+        loss_weight = loss_weight * args.weight_weight
+        
+        # loss_mse = MSE_stable(x_smooth, x) * args.weight_mse
 
-        loss = loss_mse + loss_adv + loss_act + loss_label
+        loss = loss_adv + loss_act + loss_weight #   loss_mse
 
-        # 6. Update Mean loss for current iteration
-        losses_label.update(loss_label.item(), x.size(0))
-        losses_mse.update(loss_mse.item(), x.size(0))
-        losses_adv.update(loss_adv.item(), x.size(0))
-        losses_act.update(loss_act.item(), x.size(0))
+        # Update Mean loss for current iteration
+
         losses.update(loss.item(), x.size(0))
         prec1 = accuracy(logits_smooth.data, y)
         top1.update(prec1.item(), x.size(0))
@@ -404,25 +364,16 @@ def train(epoch):
             print('Train-Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Loss_mse {loss_mse.val:.4f} ({loss_mse.avg:.4f})\t'
-                  'Loss_adv {loss_adv.val:.4f} ({loss_adv.avg:.4f})\t'
-                  'Loss_act {loss_act.val:.4f} ({loss_act.avg:.4f})\t'
-                  'Loss_label {loss_label.val:.4f} ({loss_label.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
-                loss=losses, loss_mse=losses_mse, loss_adv=losses_adv, loss_act=losses_act, loss_label=losses_label, top1=top1))
+                loss=losses, top1=top1))
 
 
 def test(epoch, args):
-    # global best_pred
+
     denoiser.eval()
     netD.eval()
 
-    losses_label = AverageMeter()
-    losses_mse = AverageMeter()
-    losses_adv = AverageMeter()
-    losses_act = AverageMeter()
-    losses = AverageMeter()
     batch_time = AverageMeter()
     top1 = AverageMeter()
 
@@ -431,48 +382,18 @@ def test(epoch, args):
     with torch.no_grad():
         for i, (x, x_adv, y) in enumerate(test_loader):
 
-            t_real = torch.ones((x.size(0), 1))
-            t_fake = torch.zeros((x.size(0), 1))
             if use_cuda:
                 x, x_adv, y = x.cuda(), x_adv.cuda(), y.cuda()
-                t_real, t_fake = t_real.cuda(), t_fake.cuda()
 
-            # 3. Compute denoised image. Need to check this...
+            # Compute denoised image. 
             noise = denoiser.forward(x_adv)
             x_smooth = x_adv + noise
 
-            # x_smooth = denoiser.forward(x_adv)
-            # adv loss
-            y_pred = netD(x)
-            y_pred_fake = netD(x_smooth)
 
-            loss_adv = ((BCE_stable(y_pred - torch.mean(y_pred_fake), t_fake) +
-                        BCE_stable(y_pred_fake - torch.mean(y_pred), t_real)) / 2) * args.weight_adv
+            # Get logits from smooth and denoised image
+            logits_smooth= target_model(x_smooth)
 
-            # 4. Get logits from smooth and denoised image
-            logits_smooth= grad_step(x_smooth, y)
-            # logits_org = grad_step(x, y)
 
-            # 5. Compute loss
-            loss_mse = MSE_stable(x_smooth, x) * args.weight_mse
-
-            # loss_ori = torch.sum(torch.abs(logits_smooth - logits_org)) / x.size(0) * args.weight_ori
-
-            loss_act, loss_label = ACT_stable(x_smooth, x)
-
-            # loss_label = loss_act
-
-            loss_act = loss_act * args.weight_act
-
-            loss_label = loss_label * args.weight_label
-
-            loss = loss_mse + loss_adv + loss_act + loss_label
-            # 6. Update Mean loss for current iteration
-            losses_label.update(loss_label.item(), x.size(0))
-            losses_mse.update(loss_mse.item(), x.size(0))
-            losses_adv.update(loss_adv.item(), x.size(0))
-            losses_act.update(loss_act.item(), x.size(0))
-            losses.update(loss.item(), x.size(0))
             prec1 = accuracy(logits_smooth.data, y)
             top1.update(prec1.item(), x.size(0))
 
@@ -482,14 +403,8 @@ def test(epoch, args):
             if i % print_freq == 0:
                 print('Test-Epoch: [{0}][{1}/{2}]'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Loss_mse {loss_mse.val:.4f} ({loss_mse.avg:.4f})\t'
-                      'Loss_adv {loss_adv.val:.4f} ({loss_adv.avg:.4f})\t'
-                      'Loss_act {loss_act.val:.4f} ({loss_act.avg:.4f})\t'
-                      'Loss_label {loss_label.val:.4f} ({loss_label.avg:.4f})\t'
                       'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
-                    epoch, i, len(test_loader), batch_time=batch_time,
-                    loss=losses, loss_mse=losses_mse, loss_adv=losses_adv, loss_act=losses_act, loss_label=losses_label, top1=top1))
+                    epoch, i, len(test_loader), batch_time=batch_time, top1=top1))
 
                 out = torch.stack((x, x_smooth))  # 2, bs, 3, 32, 32
                 out = out.transpose(1, 0).contiguous()  # bs, 2, 3, 32, 32
@@ -500,9 +415,6 @@ def test(epoch, args):
         print(' * Prec@1 {top1.avg:.3f}'.format(top1=top1))
 
         if epoch % args.save_freq == 0:
-        # is_best = best_pred <= top1.avg
-        # if is_best:
-            # best_pred = top1.avg
             save_checkpoint(denoiser.state_dict(), save_dir)
             print('save the model')
 
@@ -522,9 +434,9 @@ def evaluate(path_denoiser, saveroot):
 
         noise = denoiser.forward(x_adv)
         x_smooth = x_adv + noise
-        # x_smooth = denoiser.forward(x_adv)
 
-        logits_smooth = grad_step(x_smooth, y)
+
+        logits_smooth = target_model(x_smooth)
         prec1 = accuracy(logits_smooth.data, y)
         top1.update(prec1.item(), x_adv.size(0))
 
