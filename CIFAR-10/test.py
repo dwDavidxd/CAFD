@@ -35,7 +35,7 @@ best_acc = 0
 # Data Uplaod
 print('\n[Phase 1] : Data Preparation')
 
-src_domain = './data/test/adv/PGD/npy'
+src_domain = './results/defense/adv/PGD'
 label_dirs = './data/test/label_true.pkl'
 
 
