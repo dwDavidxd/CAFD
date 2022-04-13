@@ -1,7 +1,17 @@
 ## How to generate adversarial training data?
+
+-Training data
 Run "example_cam.py".
 
-We use the "Class Activation Feature based Attack" (CAFD) to generate adversaial samples. This code also provide some similar methods and variants to generate adversarial samples. The generated samples will be saved in the "results" folder.
+We use the "Class Activation Feature based Attack" (CAFD) to generate adversaial samples. The generated samples will be saved in the "data/training" folder.
+
+-Test data
+Run "example_other.py" or "example_autoattack.py".
+
+We use the "[advertorch](https://github.com/BorealisAI/advertorch)" toolbox to help generate adversairal samples. The first code provides ![](http://latex.codecogs.com/svg.latex?L_{\infty}) PGD, ![](http://latex.codecogs.com/svg.latex?L_{2}) CW, [DDN](https://arxiv.org/abs/1811.09600), [STA](https://openreview.net/forum?id=HyydRMZC-), etc., to generate different adversarial samples.
+
+
+
 
 
 ## How to train the "Class activation Feature based Defense"?
