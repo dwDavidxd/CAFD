@@ -1,6 +1,6 @@
 # CAFD
 
-The is the code for "[Towards Defending against Adversarial Examples via Attack-Invariant Features](https://proceedings.mlr.press/v139/zhou21e.html)".
+The is the code for "[Removing Adversarial Noise in Class Activation Feature Space](https://openaccess.thecvf.com/content/ICCV2021/html/Zhou_Removing_Adversarial_Noise_in_Class_Activation_Feature_Space_ICCV_2021_paper.html)".
 
 ## Prerequisites
 * Python (3.7.4)
