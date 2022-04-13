@@ -23,7 +23,7 @@ Run "train_or_test_denoiser.py" with "mode=0".
 The model parameters of the used target model comes from "checkpoint" folder. The trained defense model will be saved in "checkpoint_denoise" folder.
 
 
-## How to test the defense?
+## How to test CAFD?
 Run "train_or_test_denoiser.py" with "mode=1".
 
 The input data comes from "data/test" folder, and the denoised data is saved in "results/defense" folder. Then run "test.py" to compute the accuracy rate.
