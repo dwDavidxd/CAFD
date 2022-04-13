@@ -40,30 +40,23 @@ torch.manual_seed(0)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR-10 Training')
-parser.add_argument('--lr', default=0.1, type=float, help='learning_rate')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR-10')
 parser.add_argument('--net_type', default='vggnet', type=str, help='model')
 parser.add_argument('--depth', default=19, type=int, help='depth of model')
 parser.add_argument('--widen_factor', default=20, type=int, help='width of model')
 parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
-parser.add_argument('--dataset', default='cifar10', type=str, help='dataset = [cifar10/cifar100]')
-#parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-#parser.add_argument('--testOnly', '-t', action='store_true', help='Test mode with the saved model')
 args = parser.parse_args()
 
 cnt = 0
-#path_cln = './data/adv_example/test/VGG/AA/cln_npy'
-path_advu = './data/adv_example/test/VGG/AA/advu_npy'
-#path_adv = './data/adv_example/test/VGG/AA/advt_npy'
+
+path_advu = './data/test/adv/AA/npy'
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
 batch_size = 500
 transform_test = transforms.Compose([
-    transforms.ToTensor()
-    #transforms.Normalize(cf.mean[args.dataset], cf.std[args.dataset]),
-])
+    transforms.ToTensor()])
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform_test)
 
 test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, drop_last=False)
@@ -71,7 +64,7 @@ test_loader = DataLoader(testset, batch_size=batch_size, shuffle=False, drop_las
 print('\n[Test Phase] : Model setup')
 assert os.path.isdir('checkpoint'), 'Error: No checkpoint directory found!'
 _, file_name = getNetwork(args)
-checkpoint = torch.load('./checkpoint/'+args.dataset+os.sep+file_name+'.t7')
+checkpoint = torch.load('./checkpoint/'+file_name+'.t7')
 net = checkpoint['net']
 
 if use_cuda:
@@ -91,8 +84,7 @@ for cln_data, true_label in test_loader:
 
     cln_data, true_label = cln_data.to(device), true_label.to(device)
 
-    adversary = AutoAttack(net, norm='Linf', eps=16/255, version='standard')
-    # adversary.attacks_to_run = ['apgd-ce','apgd-t','fab-t']
+    adversary = AutoAttack(net, norm='Linf', eps=8/255, version='standard')
 
     for x in true_label:
         label_true.append(x.item())
@@ -128,6 +120,4 @@ for cln_data, true_label in test_loader:
 
     print(cnt)
 
-#pickle.dump(label_true, open('./img/cifar/label_true.pkl', 'wb'))
-#pickle.dump(label_un, open('./img/cifar/label_advu.pkl', 'wb'))
 
