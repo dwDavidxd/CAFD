@@ -178,7 +178,7 @@ parser.add_argument('--traindirs_label', default='./data/train/label_true.pkl', 
 
 parser.add_argument('--testdirs_cln', default='./data/test/clean/npy', type=str,
                     help='path of clean testset')
-parser.add_argument('--testdirs_adv', default='./data/test/PGD/adv/npy', type=str,
+parser.add_argument('--testdirs_adv', default='./data/test/adv/PGD/npy', type=str,
                      help='path of adversarial testset')
 parser.add_argument('--testdirs_label', default='./data/test/label_true.pkl', type=str,
                    help='path of test label')
@@ -254,7 +254,7 @@ netD = Discriminator(3, 32)
 print('\n[Test Phase] : Model setup')
 assert os.path.isdir(args.Tcheckpoint), 'Error: No Tcheckpoint directory found!'
 _, file_name = getNetwork(args)
-checkpoint = torch.load(args.Tcheckpoint + os.sep + args.dataset + os.sep + file_name + '.t7')
+checkpoint = torch.load(args.Tcheckpoint + os.sep + file_name + '.t7')
 target_model = checkpoint['net']
 del checkpoint
 
