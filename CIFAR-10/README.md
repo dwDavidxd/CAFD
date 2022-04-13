@@ -1,11 +1,11 @@
 ## How to generate adversarial training data?
 Run "example_cam.py".
 
-We use the "Class Activation Feature based Attack" (CAFD) to generate adversaial samples. We also provide some similar methods and variants to generate adversarial samples.
+We use the "Class Activation Feature based Attack" (CAFD) to generate adversaial samples. This code also provide some similar methods and variants to generate adversarial samples. The generated samples will be saved in the "results" folder.
 
 
-## How to train the "Adversarial noise Removing Network"?
-Run "train_ARN.py"
+## How to train the "Class activation Feature based Defense"?
+Run "train_denoiser.py"
 
 See "./config/adver.yaml" for network configurations and data selection. 
 
