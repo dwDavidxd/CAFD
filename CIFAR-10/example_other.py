@@ -46,8 +46,6 @@ parser.add_argument('--depth', default=19, type=int, help='depth of model')
 parser.add_argument('--widen_factor', default=20, type=int, help='width of model')
 parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
 parser.add_argument('--dataset', default='cifar10', type=str, help='dataset = [cifar10/cifar100]')
-#parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
-#parser.add_argument('--testOnly', '-t', action='store_true', help='Test mode with the saved model')
 args = parser.parse_args()
 
 cnt = 0
