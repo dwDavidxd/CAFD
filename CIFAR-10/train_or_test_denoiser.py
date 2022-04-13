@@ -209,7 +209,7 @@ parser.add_argument('--save_freq', '-p', default=2, type=int, help='print freque
 parser.add_argument('--gpu', default="0,1", type=str, help='GPU devices to use (0-7) (default: 0,1)')
 parser.add_argument('--mode', default=0, type=int, help='Wether to perform test without trainig (default: 0)')
 parser.add_argument('--path_denoiser', default='./checkpoint_denoise/CAFD/best_model.pth.tar', type=str, help='Denoiser path')
-parser.add_argument('--saveroot', default='./results/defense/PGD/adv', type=str, help='output images')
+parser.add_argument('--saveroot', default='./results/defense/adv/PGD', type=str, help='output images')
 
 args = parser.parse_args()
 
