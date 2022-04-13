@@ -1,3 +1,8 @@
+## How to train a target model?
+Run "train_target_model.py"
+This code provides three model architectures (including VggNet, ResNet and Wide-ResNet). The trained model will be saved in the "checkpoint" folder.
+
+
 ## How to generate adversarial training data?
 
 -Training data
@@ -8,26 +13,17 @@ We use the "Class Activation Feature based Attack" (CAFD) to generate adversaial
 -Test data
 Run "example_other.py" or "example_autoattack.py".
 
-We use the "[advertorch](https://github.com/BorealisAI/advertorch)" toolbox to help generate adversairal samples. The first code provides ![](http://latex.codecogs.com/svg.latex?L_{\infty}) PGD, ![](http://latex.codecogs.com/svg.latex?L_{2}) CW, [DDN](https://arxiv.org/abs/1811.09600), [STA](https://openreview.net/forum?id=HyydRMZC-), etc., to generate different adversarial samples.
-
-
-
+We use the "[advertorch](https://github.com/BorealisAI/advertorch)" toolbox to help generate adversairal samples. The first code provides ![](http://latex.codecogs.com/svg.latex?L_{\infty}) PGD, ![](http://latex.codecogs.com/svg.latex?L_{2}) CW, [DDN](https://arxiv.org/abs/1811.09600), [STA](https://openreview.net/forum?id=HyydRMZC-), etc., to generate different adversarial samples. The second code provides [Autoattack](https://arxiv.org/abs/2003.01690).
+The generated samples will be saved in the "data/test" folder.
 
 
 ## How to train the "Class activation Feature based Defense"?
-Run "train_denoiser.py"
+Run "train_or_test_denoiser.py" with "mode=0".
 
-See "./config/adver.yaml" for network configurations and data selection. 
+The model parameters of the used target model comes from "checkpoint" folder. The trained defense model will be saved in "checkpoint_denoise" folder.
 
-The training data includes natural data and two types of adversarial data.
 
-## How to test the "Adversarial noise Removing Network"?
-Run "test_ARN.py"
+## How to test the "Class activation Feature based Defense"?
+Run "train_or_test_denoiser.py" with "mode=1".
 
-See "./config/adver.yaml" for network configurations and data selection.
-
-Input the natural or adversairal data into the ARN and obtain the processed data. Then, input the processed data into the target model.
-
-"[advertorch](https://github.com/BorealisAI/advertorch)" toolbox to help generate adversairal samples. This code provides ![](http://latex.codecogs.com/svg.latex?L_{\infty}) PGD, ![](http://latex.codecogs.com/svg.latex?L_{2}) CW, [DDN](https://arxiv.org/abs/1811.09600) and [STA](https://openreview.net/forum?id=HyydRMZC-) attacks to generate different adversarial samples.
-
-The generated samples can be saved with ".png" and ".npy" format. The storage directory defaults to "adv_example".
+The input data comes from "data/test" folder, and the denoised data is saved in "results/defense" folder. Then run "test.py" to compute the accuracy rate.
