@@ -22,8 +22,7 @@ parser.add_argument('--net_type', default='vggnet', type=str, help='model')
 parser.add_argument('--depth', default=19, type=int, help='depth of model')
 parser.add_argument('--widen_factor', default=20, type=int, help='width of model')
 parser.add_argument('--dropout', default=0.3, type=float, help='dropout_rate')
-parser.add_argument('--dataset', default='cifar10adver'
-                                         '', type=str, help='dataset = [cifar10/cifar100]')
+
 args = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"]='0,1,2,3'
