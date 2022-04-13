@@ -51,18 +51,17 @@ parser.add_argument('--dataset', default='cifar10', type=str, help='dataset = [c
 args = parser.parse_args()
 
 cnt = 0
-path_cln = './data/adv_example/test/VGG/PGD_it40_16/cln_npy'
-path_advu = './data/adv_example/test/VGG/PGD_it40_16/advu_npy'
-path_adv = './data/adv_example/test/VGG/PGD_it40_16/advt_npy'
+path_cln = './data/test/clean/npy'
+path_advu = './data/test/adv/PGD/npy'
+path_advt = './data/test/adv/PGD_t/npy'
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
 batch_size = 500
 transform_test = transforms.Compose([
-    transforms.ToTensor()
-    #transforms.Normalize(cf.mean[args.dataset], cf.std[args.dataset]),
-])
+    transforms.ToTensor()])
+
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=False, transform=transform_test)
 
 num_classes = 10
@@ -84,10 +83,6 @@ net.eval()
 net.training = False
 
 label_true = []
-label_cln = []
-label_un = []
-label_ta = []
-
 
 for cln_data, true_label in test_loader:
 
@@ -142,16 +137,6 @@ for cln_data, true_label in test_loader:
     pred_untargeted_adv = predict_from_logits(net(adv_untargeted))
     pred_targeted_adv = predict_from_logits(net(adv_targeted))
 
-    # clean----------------------------------------------------
-    for x in pred_cln:
-        label_cln.append(x.item())
-
-    for x in pred_untargeted_adv:
-        label_un.append(x.item())
-
-    for x in pred_targeted_adv:
-        label_ta.append(x.item())
-
     num1 = 0
     num2 = 0
     for n in range(len(true_label)):
@@ -193,15 +178,13 @@ for cln_data, true_label in test_loader:
 
         # name = str(cnt) + '.png'
         name = str(cnt) + '.npy'
-        path = os.path.join(path_adv, name)
+        path = os.path.join(path_advt, name)
         # img = cv2.resize(img, (28, 28))
         #img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         #cv2.imwrite(path, img*255, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
         np.save(path, img)
     print(cnt)
 
-# pickle.dump(label_true, open('./adv_example/WRN/CW/label_true.pkl', 'wb'))
-# pickle.dump(label_cln, open('./adv_example/WRN/CW/label_cln.pkl', 'wb'))
-# pickle.dump(label_un, open('./adv_example/WRN/CW/label_un.pkl', 'wb'))
-# pickle.dump(label_ta, open('./adv_example/WRN/CW/label_ta.pkl', 'wb'))
+pickle.dump(label_true, open('./data/test/clean/label_true.pkl', 'wb'))
+
 
