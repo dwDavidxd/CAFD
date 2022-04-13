@@ -169,20 +169,20 @@ def save_image(tensor, filename, nrow=8, padding=2,
 parser = argparse.ArgumentParser(description='PyTorch CIFAR-10 Training. See code for default values.')
 
 # STORAGE LOCATION VARIABLES
-parser.add_argument('--traindirs_cln', default='./results/clean/train/clean_npy', type=str,
+parser.add_argument('--traindirs_cln', default='./data/train/clean/npy', type=str,
                     help='path of clean trainset')
-parser.add_argument('--traindirs_adv', default='./results/adv/train/adver_npy', type=str,
+parser.add_argument('--traindirs_adv', default='./data/train/adv/npy', type=str,
                     help='path of adversarial trainset')
-parser.add_argument('--traindirs_label', default='./results/label_true_train.pkl', type=str,
+parser.add_argument('--traindirs_label', default='./data/train/label_true.pkl', type=str,
                     help='path of training label')
 
-parser.add_argument('--testdirs_cln', default='./data/adv_example/test/PGD_40/cln_npy', type=str,
+parser.add_argument('--testdirs_cln', default='./data/test/clean/npy', type=str,
                     help='path of clean testset')
-parser.add_argument('--testdirs_adv', default='./data/adv_example/test/PGD_40/cln_npy', type=str,
+parser.add_argument('--testdirs_adv', default='./data/test/adv/npy', type=str,
                      help='path of adversarial testset')
-parser.add_argument('--testdirs_label', default='./results/label_true_test.pkl', type=str,
+parser.add_argument('--testdirs_label', default='./data/test/label_true.pkl', type=str,
                    help='path of test label')
-parser.add_argument('--save_dir', '--sd', default='./checkpoint_denoise/CIFAR/', type=str, help='Path to Model')
+parser.add_argument('--save_dir', '--sd', default='./checkpoint_denoise/', type=str, help='Path to Model')
 parser.add_argument('--net_type', default='vggnet', type=str, help='model')
 parser.add_argument('--depth', default=19, type=int, help='depth of model')
 parser.add_argument('--widen_factor', default=10, type=int, help='width of model')
