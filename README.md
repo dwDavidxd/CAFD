@@ -10,3 +10,6 @@ The is the code for "[Removing Adversarial Noise in Class Activation Feature Spa
 
 ## Using this pre-processing based adversarial defense.
 * See the "README" in "CIFAR-10" folder.
+
+## Note
+If you have any questions, please contact me.  Email:  dwzhou.xidian@gmail.com
