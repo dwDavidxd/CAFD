@@ -34,11 +34,8 @@ A visual illustration of our defense method CAFD. The proposed defense learns to
 
 
 ## Experiments
-### Data
+### Data && Preparation
 - Please download and place all datasets into the 'data' directory. 
-
-
-### Training
 - To train a target model
 
 ```
@@ -67,6 +64,8 @@ python example_other.py or python example_autoattack.py
 We use the "[advertorch](https://github.com/BorealisAI/advertorch)" toolbox to help generate adversairal samples. The first code provides ![](http://latex.codecogs.com/svg.latex?L_{\infty}) PGD, ![](http://latex.codecogs.com/svg.latex?L_{2}) CW, [DDN](https://arxiv.org/abs/1811.09600), [STA](https://openreview.net/forum?id=HyydRMZC-), etc., to generate different adversarial samples. The second code provides [Autoattack](https://arxiv.org/abs/2003.01690).
 The generated samples will be saved in the "data/test" folder.
 
+
+### Training
 - To train the CAFD
 
 ```
@@ -76,6 +75,7 @@ python train_or_test_denoiser.py --mode 0
 The model parameters of the used target model comes from "checkpoint" folder. The trained defense model will be saved in "checkpoint_denoise" folder.
 
 
+### Test
 - To test CAFD
 
 ```
