@@ -66,7 +66,7 @@ The generated samples will be saved in the "data/test" folder.
 
 
 ### Training
-- To train the CAFD
+To train the CAFD
 
 ```
 python train_or_test_denoiser.py --mode 0
