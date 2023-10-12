@@ -1,6 +1,6 @@
 <div align="center">   
   
-# Removing Adversarial Noise in Class Activation Feature Space
+# Removing Adversarial Noise in  Class Activation <br> Feature Space
 [![Paper](https://img.shields.io/badge/paper-ICCV-green)](https://openaccess.thecvf.com/content/ICCV2021/papers/Zhou_Removing_Adversarial_Noise_in_Class_Activation_Feature_Space_ICCV_2021_paper.pdf)
 
 </div>
