@@ -1,3 +1,4 @@
 python==3.7.4
 pytorch==0.4.1
+advertorch
 numpy
